@@ -1,49 +1,34 @@
-"""SOULEN main loop (Step 1B): tool registry + tool-calling loop."""
-from main.tools import TOOLS, run_tool
+"""SOULEN main loop: offline rules first, then the brain."""
+from brain.router import route
 from commands import dispatch
+from main.tools import TOOLS, run_tool
 
 EXIT_COMMANDS = {"exit", "quit", "bye"}
-MAX_STEPS = 5  # safety limit so the loop can never run forever
-
-
-def fake_brain(messages: list[dict]) -> dict:
-    """Stand-in for the LLM. Returns either a tool call or a final reply.
-
-    Later this gets replaced by Groq/Gemini, but returns the same shape:
-      {"tool_call": {"name": "...", "args": {...}}}  or  {"text": "..."}
-    """
-    last = messages[-1]
-
-    # A tool just ran, so turn its result into the final answer.
-    if last["role"] == "tool":
-        return {"text": last["content"]}
-
-    # Otherwise look at what the user said and decide on a tool.
-    words = last["content"].lower().split()
-    if "time" in words:
-        return {"tool_call": {"name": "get_current_time", "args": {}}}
-    if "date" in words or "day" in words:
-        return {"tool_call": {"name": "get_current_date", "args": {}}}
-
-    return {"text": f"[placeholder] You said: {last['content']}"}
+MAX_STEPS = 5       # safety limit so the loop can never run forever
+MAX_HISTORY = 6     # remember the last few messages for context
+HISTORY: list[dict] = []
 
 
 def handle_input(text: str) -> str:
-    """Take the user's text and return SOULEN's reply, using tools if needed."""
+    """Offline rules first. If none match, ask the brain."""
     text = text.strip()
     if not text:
         return ""
-        # Offline rules first: instant, free, no internet.
+
     offline_reply = dispatch(text)
     if offline_reply is not None:
         return offline_reply
 
-    messages = [{"role": "user", "content": text}]
+    user_msg = {"role": "user", "content": text}
+    messages = HISTORY[-MAX_HISTORY:] + [user_msg]
+    print("  [brain] thinking...")
 
     for _ in range(MAX_STEPS):
-        response = fake_brain(messages)
+        response = route(messages)
 
         if "text" in response:
+            HISTORY.append(user_msg)
+            HISTORY.append({"role": "assistant", "content": response["text"]})
             return response["text"]
 
         call = response["tool_call"]

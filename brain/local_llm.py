@@ -4,7 +4,7 @@ import urllib.error
 import urllib.request
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "qwen2.5:3b"
+MODEL = "qwen3.5:2b"
 
 SYSTEM_PROMPT = (
     "You are SOULEN, a concise personal assistant running offline on the "
@@ -26,6 +26,7 @@ def local_brain(messages: list[dict]) -> dict:
         "model": MODEL,
         "messages": chat,
         "stream": False,
+        "think": False,
         "keep_alive": "2m",  # unload from RAM after 2 idle minutes
         "options": {"num_predict": 200, "temperature": 0.4},
     }
