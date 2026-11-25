@@ -73,12 +73,13 @@ def _openai_style(url: str, key: str, model: str, messages: list[dict]) -> str:
     payload = {
         "model": model,
         "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + _chat_messages(messages),
-        "max_tokens": 300,
+        "max_tokens": 800,
         "temperature": 0.5,
     }
+    if "gpt-oss" in model:
+        payload["reasoning_effort"] = "low"  # think less, answer faster
     data = _post(url, payload, {"Authorization": f"Bearer {key}"})
     return data["choices"][0]["message"]["content"].strip()
-
 
 def _gemini(key: str, model: str, messages: list[dict]) -> str:
     contents = [
@@ -101,28 +102,35 @@ def _gemini(key: str, model: str, messages: list[dict]) -> str:
 def _providers() -> list:
     """Cloud brains in priority order. A provider is skipped if it has no key."""
     providers = []
+
     groq_key = os.environ.get("GROQ_API_KEY")
     if groq_key:
-        model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+        groq_model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
         providers.append((
             "groq",
-            lambda m: _openai_style(
-                "https://api.groq.com/openai/v1/chat/completions", groq_key, model, m
+            lambda m, k=groq_key, mdl=groq_model: _openai_style(
+                "https://api.groq.com/openai/v1/chat/completions", k, mdl, m
             ),
         ))
+
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key:
-        model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-        providers.append(("gemini", lambda m: _gemini(gemini_key, model, m)))
+        gemini_model = os.environ.get("GEMINI_MODEL", "gemini-3.7-flash")
+        providers.append((
+            "gemini",
+            lambda m, k=gemini_key, mdl=gemini_model: _gemini(k, mdl, m),
+        ))
+
     openai_key = os.environ.get("OPENAI_API_KEY")
     if openai_key:
-        model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+        openai_model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
         providers.append((
             "openai",
-            lambda m: _openai_style(
-                "https://api.openai.com/v1/chat/completions", openai_key, model, m
+            lambda m, k=openai_key, mdl=openai_model: _openai_style(
+                "https://api.openai.com/v1/chat/completions", k, mdl, m
             ),
         ))
+
     return providers
 
 
