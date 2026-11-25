@@ -30,8 +30,8 @@ The goal is to build something beyond a chatbot — a personal AI that can assis
 
 ## Roadmap
 
-- [ ] **Phase 1 — Core Brain:** Command processing, AI conversations, and tool calling.
-- [ ] **Phase 2 — Offline Mode:** Local commands, alarms, timers, app launching, and basic system controls.
+- [X] **Phase 1 — Core Brain:** Command processing, AI conversations, and tool calling.
+- [X] **Phase 2 — Offline Mode:** Local commands, alarms, timers, app launching, and basic system controls.
 - [ ] **Phase 3 — Online Intelligence:** AI provider integration, internet search, and fallback routing.
 - [ ] **Phase 4 — Voice:** Wake word, speech-to-text, and text-to-speech.
 - [ ] **Phase 5 — PC Control:** Application control, file operations, browser automation, and system monitoring.
